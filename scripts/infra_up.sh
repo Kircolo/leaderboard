@@ -18,7 +18,8 @@ if [[ ! -d "$POSTGRES_DATA_DIR" ]]; then
 fi
 
 if postgres_running; then
-  info "Postgres is already running."
+  ensure_expected_postgres_cluster
+  info "Postgres is already running from $POSTGRES_DATA_DIR."
 else
   info "Starting Postgres."
   "$(postgres_bin pg_ctl)" -D "$POSTGRES_DATA_DIR" -l "$POSTGRES_LOG_FILE" start
@@ -36,4 +37,3 @@ fi
 
 redis_running || fail "Redis did not start successfully."
 info "Infrastructure is ready."
-

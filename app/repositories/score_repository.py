@@ -11,6 +11,7 @@ from app.domain import ScoreRecord
 def _to_record(model: ScoreModel) -> ScoreRecord:
     return ScoreRecord(
         game_id=model.game_id,
+        platform=model.platform,
         user_id=model.user_id,
         score=model.score,
         created_at=model.created_at,
@@ -23,9 +24,10 @@ class SqlAlchemyScoreRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def get_score(self, game_id: str, user_id: str) -> ScoreRecord | None:
+    async def get_score(self, game_id: str, platform: str, user_id: str) -> ScoreRecord | None:
         statement: Select[tuple[ScoreModel]] = select(ScoreModel).where(
             ScoreModel.game_id == game_id,
+            ScoreModel.platform == platform,
             ScoreModel.user_id == user_id,
         )
         result = await self.session.execute(statement)
@@ -35,12 +37,14 @@ class SqlAlchemyScoreRepository:
     async def upsert_high_score(
         self,
         game_id: str,
+        platform: str,
         user_id: str,
         score: int,
     ) -> tuple[ScoreRecord, bool]:
         now = datetime.now(UTC)
         returning_columns = (
             ScoreModel.game_id,
+            ScoreModel.platform,
             ScoreModel.user_id,
             ScoreModel.score,
             ScoreModel.created_at,
@@ -49,6 +53,7 @@ class SqlAlchemyScoreRepository:
         )
         insert_statement = pg_insert(ScoreModel).values(
             game_id=game_id,
+            platform=platform,
             user_id=user_id,
             score=score,
             created_at=now,
@@ -57,7 +62,7 @@ class SqlAlchemyScoreRepository:
         )
         upsert_statement = (
             insert_statement.on_conflict_do_update(
-                index_elements=[ScoreModel.game_id, ScoreModel.user_id],
+                index_elements=[ScoreModel.game_id, ScoreModel.platform, ScoreModel.user_id],
                 set_={
                     "score": insert_statement.excluded.score,
                     "updated_at": now,
@@ -78,6 +83,7 @@ class SqlAlchemyScoreRepository:
             update(ScoreModel)
             .where(
                 ScoreModel.game_id == game_id,
+                ScoreModel.platform == platform,
                 ScoreModel.user_id == user_id,
             )
             .values(last_submitted_at=now)
@@ -91,7 +97,7 @@ class SqlAlchemyScoreRepository:
         statement: Select[tuple[ScoreModel]] = (
             select(ScoreModel)
             .where(ScoreModel.game_id == game_id)
-            .order_by(ScoreModel.score.desc(), ScoreModel.user_id.asc())
+            .order_by(ScoreModel.score.desc(), ScoreModel.platform.asc(), ScoreModel.user_id.asc())
         )
         result = await self.session.execute(statement)
         return [_to_record(model) for model in result.scalars().all()]

@@ -6,11 +6,12 @@ def test_leaderboard_response_accepts_domain_ranked_entries():
     payload = LeaderboardResult(
         game_id="game_1",
         limit=10,
-        entries=[RankedEntry(rank=1, user_id="alice", score=100)],
+        entries=[RankedEntry(rank=1, platform="steam", user_id="alice", score=100)],
     )
 
     result = LeaderboardResponse.model_validate(payload)
 
+    assert result.entries[0].platform == "steam"
     assert result.entries[0].user_id == "alice"
     assert result.entries[0].rank == 1
 
@@ -18,15 +19,18 @@ def test_leaderboard_response_accepts_domain_ranked_entries():
 def test_user_context_response_accepts_domain_ranked_entries():
     payload = UserContextResult(
         game_id="game_1",
+        platform="steam",
         user_id="alice",
         rank=1,
         score=100,
         window=2,
         above=[],
-        below=[RankedEntry(rank=2, user_id="bob", score=90)],
+        below=[RankedEntry(rank=2, platform="xbox", user_id="bob", score=90)],
     )
 
     result = UserContextResponse.model_validate(payload)
 
+    assert result.platform == "steam"
+    assert result.below[0].platform == "xbox"
     assert result.below[0].user_id == "bob"
     assert result.below[0].rank == 2

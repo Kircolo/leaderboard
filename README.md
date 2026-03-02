@@ -88,29 +88,29 @@ curl -s http://127.0.0.1:8000/health/ready | jq
 ```
 
 ```bash
-curl -s -X POST http://127.0.0.1:8000/v1/games/game_1/scores \
+curl -s -X POST http://127.0.0.1:8000/games/game_1/scores \
   -H 'Content-Type: application/json' \
-  -d '{"user_id":"alice","score":100}' | jq
+  -d '{"platform":"steam","user_id":"alice","score":100}' | jq
 ```
 
 ```bash
-curl -s -X POST http://127.0.0.1:8000/v1/games/game_1/scores \
+curl -s -X POST http://127.0.0.1:8000/games/game_1/scores \
   -H 'Content-Type: application/json' \
-  -d '{"user_id":"bob","score":90}' | jq
+  -d '{"platform":"psn","user_id":"bob","score":90}' | jq
 ```
 
 ```bash
-curl -s -X POST http://127.0.0.1:8000/v1/games/game_1/scores \
+curl -s -X POST http://127.0.0.1:8000/games/game_1/scores \
   -H 'Content-Type: application/json' \
-  -d '{"user_id":"carol","score":90}' | jq
+  -d '{"platform":"xbox","user_id":"carol","score":90}' | jq
 ```
 
 ```bash
-curl -s "http://127.0.0.1:8000/v1/games/game_1/leaderboard?limit=10" | jq
+curl -s "http://127.0.0.1:8000/games/game_1/leaderboard?limit=10" | jq
 ```
 
 ```bash
-curl -s "http://127.0.0.1:8000/v1/games/game_1/users/bob/context?window=2" | jq
+curl -s "http://127.0.0.1:8000/games/game_1/platforms/psn/users/bob/context?window=2" | jq
 ```
 
 ### Stop local services
@@ -137,12 +137,13 @@ docker compose up --build
 
 ### Submit score
 
-`POST /v1/games/{game_id}/scores`
+`POST /games/{game_id}/scores`
 
 Request:
 
 ```json
 {
+  "platform": "steam",
   "user_id": "user_123",
   "score": 9001
 }
@@ -153,6 +154,7 @@ Response:
 ```json
 {
   "game_id": "game_1",
+  "platform": "steam",
   "user_id": "user_123",
   "submitted_score": 9001,
   "stored_score": 9001,
@@ -163,7 +165,7 @@ Response:
 
 ### Top leaderboard
 
-`GET /v1/games/{game_id}/leaderboard?limit=10`
+`GET /games/{game_id}/leaderboard?limit=10`
 
 Response:
 
@@ -174,6 +176,7 @@ Response:
   "entries": [
     {
       "rank": 1,
+      "platform": "steam",
       "user_id": "user_a",
       "score": 9999
     }
@@ -183,13 +186,14 @@ Response:
 
 ### User context
 
-`GET /v1/games/{game_id}/users/{user_id}/context?window=2`
+`GET /games/{game_id}/platforms/{platform}/users/{user_id}/context?window=2`
 
 Response:
 
 ```json
 {
   "game_id": "game_1",
+  "platform": "psn",
   "user_id": "user_123",
   "rank": 42,
   "score": 9001,
@@ -197,6 +201,7 @@ Response:
   "above": [
     {
       "rank": 40,
+      "platform": "steam",
       "user_id": "user_x",
       "score": 9050
     }
@@ -204,6 +209,7 @@ Response:
   "below": [
     {
       "rank": 43,
+      "platform": "xbox",
       "user_id": "user_y",
       "score": 8999
     }
@@ -236,13 +242,13 @@ make lint
 
 ## Architecture notes
 
-- Postgres holds canonical score rows keyed by `(game_id, user_id)`.
-- Redis stores `leaderboard:{game_id}` sorted sets using `user_id` members and score values.
+- Postgres holds canonical score rows keyed by `(game_id, platform, user_id)`.
+- Redis stores `leaderboard:{game_id}` sorted sets using a composite `platform|user_id` member and score values.
 - Read endpoints serve from Redis first.
 - If Redis is empty or missing a known user, the service rebuilds the game leaderboard from Postgres.
 - Displayed rank is computed as `count(scores strictly greater than target_score) + 1`.
 
-See [docs/architecture.md](docs/architecture.md) and [docs/architecture-diagram.svg](docs/architecture-diagram.svg).
+See [ARCHITECTURE_FLOW_DIAGRAM.md](ARCHITECTURE_FLOW_DIAGRAM.md), [docs/architecture.md](docs/architecture.md), and [docs/architecture-diagram.svg](docs/architecture-diagram.svg).
 
 ## Tradeoffs and future improvements
 

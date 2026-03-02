@@ -5,6 +5,7 @@ from datetime import datetime
 @dataclass(slots=True)
 class ScoreRecord:
     game_id: str
+    platform: str
     user_id: str
     score: int
     created_at: datetime
@@ -15,6 +16,7 @@ class ScoreRecord:
 @dataclass(slots=True)
 class RankedEntry:
     rank: int
+    platform: str
     user_id: str
     score: int
 
@@ -22,6 +24,7 @@ class RankedEntry:
 @dataclass(slots=True)
 class SubmitScoreResult:
     game_id: str
+    platform: str
     user_id: str
     submitted_score: int
     stored_score: int
@@ -39,10 +42,10 @@ class LeaderboardResult:
 @dataclass(slots=True)
 class UserContextResult:
     game_id: str
+    platform: str
     user_id: str
     rank: int
     score: int
     window: int
     above: list[RankedEntry]
     below: list[RankedEntry]
-

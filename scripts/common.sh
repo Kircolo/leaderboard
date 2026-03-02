@@ -61,6 +61,28 @@ postgres_running() {
 }
 
 
+current_postgres_data_dir() {
+  local psql_bin
+  psql_bin="$(postgres_bin psql)"
+  "$psql_bin" -d postgres -Atqc "SHOW data_directory;" 2>/dev/null || true
+}
+
+
+ensure_expected_postgres_cluster() {
+  local running_data_dir expected_data_dir
+
+  expected_data_dir="$(realpath "$POSTGRES_DATA_DIR" 2>/dev/null || printf '%s' "$POSTGRES_DATA_DIR")"
+  running_data_dir="$(current_postgres_data_dir)"
+  [[ -n "$running_data_dir" ]] || fail "Postgres is responding on localhost:5432 but its data directory could not be determined."
+
+  running_data_dir="$(realpath "$running_data_dir" 2>/dev/null || printf '%s' "$running_data_dir")"
+
+  if [[ "$running_data_dir" != "$expected_data_dir" ]]; then
+    fail "Another Postgres cluster is already running on localhost:5432 at '$running_data_dir'. Stop it first, then rerun this command."
+  fi
+}
+
+
 redis_running() {
   redis-cli ping >/dev/null 2>&1
 }
@@ -122,4 +144,3 @@ ensure_env_file() {
   set_env_var "$APP_ENV_FILE" "LEADERBOARD_DATABASE_URL" "$database_url"
   set_env_var "$APP_ENV_FILE" "LEADERBOARD_REDIS_URL" "$REDIS_URL"
 }
-

@@ -7,6 +7,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/common.sh"
 
 if postgres_running; then
+  ensure_expected_postgres_cluster
   info "Stopping Postgres."
   "$(postgres_bin pg_ctl)" -D "$POSTGRES_DATA_DIR" stop -m fast
 else
@@ -21,4 +22,3 @@ else
 fi
 
 info "Infrastructure stopped."
-
