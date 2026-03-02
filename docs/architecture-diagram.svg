@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="560" viewBox="0 0 980 560">
+  <rect width="980" height="560" fill="#f4efe6"/>
+  <rect x="60" y="60" width="170" height="90" rx="18" fill="#1d3557"/>
+  <text x="145" y="112" text-anchor="middle" font-family="Verdana" font-size="24" fill="#ffffff">API Client</text>
+
+  <rect x="315" y="50" width="360" height="120" rx="22" fill="#457b9d"/>
+  <text x="495" y="97" text-anchor="middle" font-family="Verdana" font-size="26" fill="#ffffff">FastAPI Service</text>
+  <text x="495" y="128" text-anchor="middle" font-family="Verdana" font-size="18" fill="#ffffff">Validation, business rules, rank shaping</text>
+
+  <rect x="160" y="250" width="250" height="120" rx="20" fill="#e76f51"/>
+  <text x="285" y="305" text-anchor="middle" font-family="Verdana" font-size="26" fill="#ffffff">Postgres</text>
+  <text x="285" y="338" text-anchor="middle" font-family="Verdana" font-size="18" fill="#ffffff">Canonical high scores</text>
+
+  <rect x="560" y="250" width="250" height="120" rx="20" fill="#2a9d8f"/>
+  <text x="685" y="305" text-anchor="middle" font-family="Verdana" font-size="26" fill="#ffffff">Redis</text>
+  <text x="685" y="338" text-anchor="middle" font-family="Verdana" font-size="18" fill="#ffffff">Sorted-set leaderboard cache</text>
+
+  <rect x="315" y="430" width="360" height="80" rx="18" fill="#6d597a"/>
+  <text x="495" y="475" text-anchor="middle" font-family="Verdana" font-size="23" fill="#ffffff">Rebuild path on cache miss</text>
+
+  <line x1="230" y1="105" x2="315" y2="105" stroke="#111111" stroke-width="4"/>
+  <polygon points="315,105 300,97 300,113" fill="#111111"/>
+  <text x="255" y="88" text-anchor="middle" font-family="Verdana" font-size="15" fill="#111111">HTTP JSON</text>
+
+  <line x1="435" y1="170" x2="330" y2="250" stroke="#111111" stroke-width="4"/>
+  <polygon points="330,250 336,234 345,246" fill="#111111"/>
+  <text x="355" y="205" text-anchor="middle" font-family="Verdana" font-size="15" fill="#111111">write / rebuild</text>
+
+  <line x1="555" y1="170" x2="640" y2="250" stroke="#111111" stroke-width="4"/>
+  <polygon points="640,250 624,245 634,234" fill="#111111"/>
+  <text x="600" y="205" text-anchor="middle" font-family="Verdana" font-size="15" fill="#111111">read / cache update</text>
+
+  <line x1="410" y1="370" x2="380" y2="430" stroke="#111111" stroke-width="4"/>
+  <polygon points="380,430 379,413 393,420" fill="#111111"/>
+  <line x1="560" y1="370" x2="610" y2="430" stroke="#111111" stroke-width="4"/>
+  <polygon points="610,430 594,424 606,414" fill="#111111"/>
+
+  <line x1="495" y1="430" x2="495" y2="170" stroke="#111111" stroke-width="3" stroke-dasharray="10,10"/>
+  <polygon points="495,170 488,185 502,185" fill="#111111"/>
+  <text x="530" y="300" text-anchor="start" font-family="Verdana" font-size="15" fill="#111111">rebuild + response</text>
+</svg>
+
