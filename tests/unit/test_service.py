@@ -26,27 +26,31 @@ class FakeScoreRepository:
     async def get_score(self, game_id: str, user_id: str) -> ScoreRecord | None:
         return self.records.get((game_id, user_id))
 
-    async def create_score(self, game_id: str, user_id: str, score: int) -> ScoreRecord:
-        record = make_record(game_id, user_id, score)
-        self.records[(game_id, user_id)] = record
-        return record
+    async def upsert_high_score(
+        self,
+        game_id: str,
+        user_id: str,
+        score: int,
+    ) -> tuple[ScoreRecord, bool]:
+        existing = self.records.get((game_id, user_id))
+        if existing is None:
+            record = make_record(game_id, user_id, score)
+            self.records[(game_id, user_id)] = record
+            return record, True
 
-    async def update_score(self, game_id: str, user_id: str, score: int) -> ScoreRecord:
-        existing = self.records[(game_id, user_id)]
-        updated = replace(
-            existing,
-            score=score,
-            updated_at=datetime.now(UTC),
-            last_submitted_at=datetime.now(UTC),
-        )
-        self.records[(game_id, user_id)] = updated
-        return updated
+        if score > existing.score:
+            updated = replace(
+                existing,
+                score=score,
+                updated_at=datetime.now(UTC),
+                last_submitted_at=datetime.now(UTC),
+            )
+            self.records[(game_id, user_id)] = updated
+            return updated, True
 
-    async def touch_submission(self, game_id: str, user_id: str) -> ScoreRecord:
-        existing = self.records[(game_id, user_id)]
-        updated = replace(existing, last_submitted_at=datetime.now(UTC))
-        self.records[(game_id, user_id)] = updated
-        return updated
+        touched = replace(existing, last_submitted_at=datetime.now(UTC))
+        self.records[(game_id, user_id)] = touched
+        return touched, False
 
     async def get_all_scores_for_game(self, game_id: str) -> list[ScoreRecord]:
         return sorted(
@@ -110,6 +114,19 @@ def test_submit_score_keeps_highest_score():
     result = asyncio.run(service.submit_score("game-1", "alice", 90))
 
     assert result.updated is False
+    assert result.stored_score == 100
+    assert result.rank == 1
+
+
+def test_submit_score_creates_new_record_when_user_is_new():
+    service = LeaderboardService(
+        score_repository=FakeScoreRepository(),
+        cache_repository=FakeCacheRepository(),
+    )
+
+    result = asyncio.run(service.submit_score("game-1", "alice", 100))
+
+    assert result.updated is True
     assert result.stored_score == 100
     assert result.rank == 1
 

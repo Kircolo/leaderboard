@@ -7,9 +7,12 @@ from app.services.ranking import build_ranked_entries, competition_rank_from_hig
 
 class ScoreRepositoryProtocol(Protocol):
     async def get_score(self, game_id: str, user_id: str) -> ScoreRecord | None: ...
-    async def create_score(self, game_id: str, user_id: str, score: int) -> ScoreRecord: ...
-    async def update_score(self, game_id: str, user_id: str, score: int) -> ScoreRecord: ...
-    async def touch_submission(self, game_id: str, user_id: str) -> ScoreRecord: ...
+    async def upsert_high_score(
+        self,
+        game_id: str,
+        user_id: str,
+        score: int,
+    ) -> tuple[ScoreRecord, bool]: ...
     async def get_all_scores_for_game(self, game_id: str) -> list[ScoreRecord]: ...
 
 
@@ -39,17 +42,11 @@ class LeaderboardService:
         self.cache_repository = cache_repository
 
     async def submit_score(self, game_id: str, user_id: str, score: int) -> SubmitScoreResult:
-        existing = await self.score_repository.get_score(game_id, user_id)
-
-        if existing is None:
-            record = await self.score_repository.create_score(game_id, user_id, score)
-            updated = True
-        elif score > existing.score:
-            record = await self.score_repository.update_score(game_id, user_id, score)
-            updated = True
-        else:
-            record = await self.score_repository.touch_submission(game_id, user_id)
-            updated = False
+        record, updated = await self.score_repository.upsert_high_score(
+            game_id=game_id,
+            user_id=user_id,
+            score=score,
+        )
 
         if updated:
             await self.cache_repository.set_score(game_id, user_id, record.score)

@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Path, Query
 
 from app.api.dependencies import get_leaderboard_service
+from app.schemas.identifiers import Identifier
 from app.schemas.leaderboard import (
     LeaderboardResponse,
     SubmitScoreRequest,
@@ -14,10 +15,10 @@ from app.services.leaderboard_service import LeaderboardService
 router = APIRouter()
 
 
-GameId = Annotated[str, Path(min_length=1, max_length=128)]
-UserId = Annotated[str, Path(min_length=1, max_length=128)]
-LeaderboardLimit = Annotated[int, Query(default=10, ge=1, le=100)]
-ContextWindow = Annotated[int, Query(default=2, ge=1, le=10)]
+GameId = Annotated[Identifier, Path()]
+UserId = Annotated[Identifier, Path()]
+LeaderboardLimit = Annotated[int, Query(ge=1, le=100)]
+ContextWindow = Annotated[int, Query(ge=1, le=10)]
 LeaderboardServiceDependency = Annotated[LeaderboardService, Depends(get_leaderboard_service)]
 
 
@@ -38,8 +39,8 @@ async def submit_score(
 @router.get("/games/{game_id}/leaderboard", response_model=LeaderboardResponse)
 async def get_leaderboard(
     game_id: GameId,
-    limit: LeaderboardLimit,
     service: LeaderboardServiceDependency,
+    limit: LeaderboardLimit = 10,
 ) -> LeaderboardResponse:
     result = await service.get_top_leaderboard(game_id=game_id, limit=limit)
     return LeaderboardResponse.model_validate(result)
@@ -49,8 +50,8 @@ async def get_leaderboard(
 async def get_user_context(
     game_id: GameId,
     user_id: UserId,
-    window: ContextWindow,
     service: LeaderboardServiceDependency,
+    window: ContextWindow = 2,
 ) -> UserContextResponse:
     result = await service.get_user_context(game_id=game_id, user_id=user_id, window=window)
     return UserContextResponse.model_validate(result)

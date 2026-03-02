@@ -1,5 +1,7 @@
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.schemas.identifiers import Identifier
+
 
 class RankedEntryResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -10,7 +12,7 @@ class RankedEntryResponse(BaseModel):
 
 
 class SubmitScoreRequest(BaseModel):
-    user_id: str = Field(min_length=1, max_length=128)
+    user_id: Identifier
     score: int = Field(ge=0, le=9223372036854775807)
 
 
