@@ -14,19 +14,22 @@ Production-oriented REST API for a global gaming leaderboard. The service accept
 ## Core behavior
 
 - Scores are scoped by `game_id`.
-- Highest score wins per user per game.
+- Users are identified per game by `(platform, user_id)`.
+- Highest score wins per user-platform pair per game.
 - Lower or equal submissions are accepted but do not replace the stored score.
 - Ties use competition ranking: `1, 2, 2, 4`.
 - User context returns a configurable window, defaulting to 2 users above and 2 below.
+- New `game_id` values are accepted as-is; the first score submission creates that leaderboard namespace.
 
 ## Project structure
 
 ```text
-leaderboard/
+leaderboard2/
   app/
   alembic/
   docs/
   tests/
+  scripts/
   .github/workflows/
   docker-compose.yml
   Dockerfile
@@ -68,6 +71,8 @@ This will:
 - create `.env` if it does not exist
 - set `LEADERBOARD_DATABASE_URL` for the current local user
 - run `alembic upgrade head`
+
+If another Postgres cluster is already using `localhost:5432`, the bootstrap step now fails fast instead of silently reusing the wrong database. Stop that cluster first, then rerun `make bootstrap` or `make dev`.
 
 ### 5. Start the API
 
@@ -133,6 +138,8 @@ Docker support is included for a more standard local setup outside this constrai
 docker compose up --build
 ```
 
+The Docker path uses the default `.env.example` connection settings and starts a dedicated `postgres`, `redis`, and `api` container set.
+
 ## API endpoints
 
 ### Submit score
@@ -163,6 +170,12 @@ Response:
 }
 ```
 
+Behavior:
+
+- If this is the first score for `(game_id, platform, user_id)`, a new row is created.
+- If the user-platform entry already exists, only a higher score replaces the stored score.
+- `updated=false` means the submission was accepted but did not beat the existing high score.
+
 ### Top leaderboard
 
 `GET /games/{game_id}/leaderboard?limit=10`
@@ -183,6 +196,13 @@ Response:
   ]
 }
 ```
+
+Behavior:
+
+- `limit` defaults to `10` and is capped at `100`.
+- Rankings are game-wide across all platforms.
+- Ties share the same rank.
+- Same-score ordering is deterministic, but tied users may appear in either order depending on the cache member ordering.
 
 ### User context
 
@@ -217,6 +237,13 @@ Response:
 }
 ```
 
+Behavior:
+
+- `window` defaults to `2` and is capped at `10`.
+- The requested user is identified by both `platform` and `user_id`.
+- Nearby entries can include players on other platforms.
+- If another player has the same score, they may appear in `above` or `below` depending on deterministic tie ordering.
+
 ### Health checks
 
 GET /health/live
@@ -236,9 +263,10 @@ make lint
 
 ## Testing strategy
 
-- Unit tests cover competition ranking and service-level score semantics.
-- Integration coverage includes API contract presence and is structured to expand with live dependency-backed tests.
+- Unit tests cover competition ranking, score semantics, identifier validation, and response serialization.
+- Integration coverage verifies the documented API contract in the README.
 - CI runs linting and tests on every push and pull request.
+- The local workflow has also been exercised manually against live Postgres and Redis with end-to-end HTTP smoke checks.
 
 ## Architecture notes
 
@@ -248,10 +276,11 @@ make lint
 - If Redis is empty or missing a known user, the service rebuilds the game leaderboard from Postgres.
 - Displayed rank is computed as `count(scores strictly greater than target_score) + 1`.
 
-See [ARCHITECTURE_FLOW_DIAGRAM.md](ARCHITECTURE_FLOW_DIAGRAM.md), [docs/architecture.md](docs/architecture.md), and [docs/architecture-diagram.svg](docs/architecture-diagram.svg).
+See [docs/architecture.md](docs/architecture.md) and [docs/architecture-diagram.svg](docs/architecture-diagram.svg).
 
 ## Tradeoffs and future improvements
 
 - A single write currently updates Postgres first and Redis second. For the MVP, Postgres remains canonical and cache rebuilds handle drift.
+- Same-score ordering is deterministic but not explicitly product-shaped yet; if tie presentation needs stronger semantics, we should define a dedicated secondary ordering rule.
 - Authentication, rate limiting, and anti-cheat controls are intentionally excluded.
 - A future iteration should add true end-to-end integration tests that run against live Postgres and Redis in CI and local Docker.
