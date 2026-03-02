@@ -13,13 +13,15 @@ class ErrorPayload:
 
 
 async def handle_app_error(_: Request, exc: AppError) -> JSONResponse:
-    return JSONResponse(status_code=exc.status_code, content={"error": asdict(ErrorPayload(exc.code, exc.message))})
+    payload = ErrorPayload(exc.code, exc.message)
+    return JSONResponse(status_code=exc.status_code, content={"error": asdict(payload)})
 
 
 async def handle_unexpected_error(_: Request, exc: Exception) -> JSONResponse:
+    payload = ErrorPayload("internal_server_error", "An unexpected error occurred.")
     return JSONResponse(
         status_code=500,
-        content={"error": asdict(ErrorPayload("internal_server_error", "An unexpected error occurred."))},
+        content={"error": asdict(payload)},
     )
 
 

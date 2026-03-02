@@ -8,4 +8,7 @@ dist/
 build/
 *.pyc
 .env
-
+.postgres-data/
+.postgres.log
+.redis.log
+.redis.pid

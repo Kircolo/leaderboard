@@ -37,7 +37,12 @@ class RedisLeaderboardCacheRepository:
         position = await self.redis.zrevrank(self._key(game_id), user_id)
         return None if position is None else int(position)
 
-    async def get_range_by_position(self, game_id: str, start: int, end: int) -> list[tuple[str, int]]:
+    async def get_range_by_position(
+        self,
+        game_id: str,
+        start: int,
+        end: int,
+    ) -> list[tuple[str, int]]:
         if end < start:
             return []
         entries = await self.redis.zrevrange(self._key(game_id), start, end, withscores=True)

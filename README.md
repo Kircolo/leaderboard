@@ -35,12 +35,7 @@ leaderboard/
 
 ## Local setup for this interview container
 
-The container does not provide Docker or `systemd`, so the primary local workflow is:
-
-- install Python dependencies with `pip`
-- install `postgresql@16` and `redis` with Homebrew
-- start Postgres and Redis manually
-- point the app at the container's local Postgres user
+The container does not provide Docker or `systemd`, so the primary local workflow uses Homebrew-installed Postgres and Redis plus repo-local automation.
 
 ### 1. Install Python dependencies
 
@@ -54,51 +49,30 @@ python3 -m pip install -r requirements-dev.txt
 brew install redis postgresql@16
 ```
 
-### 3. Add Postgres binaries to `PATH`
+### 3. Run environment checks
 
 ```bash
-export PATH="/home/linuxbrew/.linuxbrew/opt/postgresql@16/bin:$PATH"
+make doctor
 ```
 
-### 4. Start Postgres manually
+### 4. Bootstrap the local environment
 
 ```bash
-initdb -D /workspaces/leaderboard/.postgres-data
-pg_ctl -D /workspaces/leaderboard/.postgres-data -l /workspaces/leaderboard/.postgres.log start
-createdb leaderboard
+make bootstrap
 ```
 
-### 5. Start Redis manually
+This will:
+
+- initialize `.postgres-data/` on first run
+- start Postgres and Redis if they are not already running
+- create `.env` if it does not exist
+- set `LEADERBOARD_DATABASE_URL` for the current local user
+- run `alembic upgrade head`
+
+### 5. Start the API
 
 ```bash
-redis-server --daemonize yes --dir /workspaces/leaderboard --logfile /workspaces/leaderboard/.redis.log
-```
-
-### 6. Create a local `.env`
-
-Copy the example file:
-
-```bash
-cp .env.example .env
-```
-
-Then update the database URL so it uses the local container user created by `initdb`:
-
-```env
-LEADERBOARD_DATABASE_URL=postgresql+asyncpg://vscode@localhost:5432/leaderboard
-LEADERBOARD_REDIS_URL=redis://localhost:6379/0
-```
-
-### 7. Run the migration
-
-```bash
-alembic upgrade head
-```
-
-### 8. Start the API
-
-```bash
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+make dev
 ```
 
 ## Verify locally
@@ -142,12 +116,14 @@ curl -s "http://127.0.0.1:8000/v1/games/game_1/users/bob/context?window=2" | jq
 ### Stop local services
 
 ```bash
-pg_ctl -D /workspaces/leaderboard/.postgres-data stop
+make infra-down
 ```
 
 ```bash
-redis-cli shutdown
+make clean
 ```
+
+`make clean` stops Postgres and Redis, removes the local Postgres data directory, deletes local log files, and clears Python cache artifacts.
 
 ## Optional Docker path
 
@@ -266,7 +242,7 @@ make lint
 - If Redis is empty or missing a known user, the service rebuilds the game leaderboard from Postgres.
 - Displayed rank is computed as `count(scores strictly greater than target_score) + 1`.
 
-See [docs/architecture.md](/workspaces/leaderboard/docs/architecture.md) and [docs/architecture-diagram.svg](/workspaces/leaderboard/docs/architecture-diagram.svg).
+See [docs/architecture.md](docs/architecture.md) and [docs/architecture-diagram.svg](docs/architecture-diagram.svg).
 
 ## Tradeoffs and future improvements
 

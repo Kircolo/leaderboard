@@ -20,7 +20,12 @@ class LeaderboardCacheRepositoryProtocol(Protocol):
     async def get_all(self, game_id: str) -> list[tuple[str, int]]: ...
     async def count_higher_scores(self, game_id: str, score: int) -> int: ...
     async def get_user_position(self, game_id: str, user_id: str) -> int | None: ...
-    async def get_range_by_position(self, game_id: str, start: int, end: int) -> list[tuple[str, int]]: ...
+    async def get_range_by_position(
+        self,
+        game_id: str,
+        start: int,
+        end: int,
+    ) -> list[tuple[str, int]]: ...
     async def rebuild(self, game_id: str, entries: list[ScoreRecord]) -> None: ...
 
 
@@ -87,11 +92,15 @@ class LeaderboardService:
 
         ranked_entries = build_ranked_entries(entries)
         try:
-            target_index = next(index for index, entry in enumerate(ranked_entries) if entry.user_id == user_id)
+            target_index = next(
+                index
+                for index, entry in enumerate(ranked_entries)
+                if entry.user_id == user_id
+            )
         except StopIteration as exc:
-            raise NotFoundError(f"User '{user_id}' does not have a score for game '{game_id}'.") from exc
+            message = f"User '{user_id}' does not have a score for game '{game_id}'."
+            raise NotFoundError(message) from exc
 
-        target_ranked_entry = ranked_entries[target_index]
         start = max(target_index - window, 0)
         end = target_index + window + 1
         above = ranked_entries[start:target_index]

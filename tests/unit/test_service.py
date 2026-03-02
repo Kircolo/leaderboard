@@ -1,6 +1,6 @@
+import asyncio
 from dataclasses import replace
 from datetime import UTC, datetime
-import asyncio
 
 from app.core.exceptions import NotFoundError
 from app.domain import ScoreRecord
@@ -33,7 +33,12 @@ class FakeScoreRepository:
 
     async def update_score(self, game_id: str, user_id: str, score: int) -> ScoreRecord:
         existing = self.records[(game_id, user_id)]
-        updated = replace(existing, score=score, updated_at=datetime.now(UTC), last_submitted_at=datetime.now(UTC))
+        updated = replace(
+            existing,
+            score=score,
+            updated_at=datetime.now(UTC),
+            last_submitted_at=datetime.now(UTC),
+        )
         self.records[(game_id, user_id)] = updated
         return updated
 
@@ -75,7 +80,12 @@ class FakeCacheRepository:
                 return index
         return None
 
-    async def get_range_by_position(self, game_id: str, start: int, end: int) -> list[tuple[str, int]]:
+    async def get_range_by_position(
+        self,
+        game_id: str,
+        start: int,
+        end: int,
+    ) -> list[tuple[str, int]]:
         return self._ordered(game_id)[start : end + 1]
 
     async def rebuild(self, game_id: str, entries: list[ScoreRecord]) -> None:
@@ -87,10 +97,15 @@ class FakeCacheRepository:
 
 
 def test_submit_score_keeps_highest_score():
-    score_repository = FakeScoreRepository({("game-1", "alice"): make_record("game-1", "alice", 100)})
+    score_repository = FakeScoreRepository(
+        {("game-1", "alice"): make_record("game-1", "alice", 100)}
+    )
     cache_repository = FakeCacheRepository()
     asyncio.run(cache_repository.set_score("game-1", "alice", 100))
-    service = LeaderboardService(score_repository=score_repository, cache_repository=cache_repository)
+    service = LeaderboardService(
+        score_repository=score_repository,
+        cache_repository=cache_repository,
+    )
 
     result = asyncio.run(service.submit_score("game-1", "alice", 90))
 
@@ -107,7 +122,10 @@ def test_get_top_leaderboard_rebuilds_cache_when_missing():
         }
     )
     cache_repository = FakeCacheRepository()
-    service = LeaderboardService(score_repository=score_repository, cache_repository=cache_repository)
+    service = LeaderboardService(
+        score_repository=score_repository,
+        cache_repository=cache_repository,
+    )
 
     result = asyncio.run(service.get_top_leaderboard("game-1", 10))
 
@@ -115,7 +133,10 @@ def test_get_top_leaderboard_rebuilds_cache_when_missing():
 
 
 def test_get_user_context_raises_not_found_for_unknown_user():
-    service = LeaderboardService(score_repository=FakeScoreRepository(), cache_repository=FakeCacheRepository())
+    service = LeaderboardService(
+        score_repository=FakeScoreRepository(),
+        cache_repository=FakeCacheRepository(),
+    )
 
     try:
         asyncio.run(service.get_user_context("game-1", "missing", 2))

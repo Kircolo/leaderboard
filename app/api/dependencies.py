@@ -1,4 +1,5 @@
 from collections.abc import AsyncIterator
+from typing import Annotated
 
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,10 +17,9 @@ async def get_session() -> AsyncIterator[AsyncSession]:
 
 
 async def get_leaderboard_service(
-    session: AsyncSession = Depends(get_session),
+    session: Annotated[AsyncSession, Depends(get_session)],
 ) -> LeaderboardService:
     redis_client = get_redis_client()
     score_repository = SqlAlchemyScoreRepository(session)
     cache_repository = RedisLeaderboardCacheRepository(redis_client)
     return LeaderboardService(score_repository=score_repository, cache_repository=cache_repository)
-
